@@ -1,0 +1,16 @@
+{
+  "posts": [
+    { "id": "first_post", "title": "first post", "content": "안녕하세요!" },
+    {
+      "id": "my_second_post",
+      "title": "My second post",
+      "content": "Second post!"
+    },
+    {
+      "id": "learn_nodejs",
+      "title": "노드 배우기",
+      "content": "JSON으로 데이터 관리!"
+    },
+    { "id": "new_post", "title": "New post", "content": "새 게시물 추가" }
+  ]
+}

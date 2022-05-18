@@ -11,24 +11,24 @@
  * @property {string} content
  */
 
-/** @type {Post[]} */
-const posts = [
-  {
-    id: 'my_first_post',
-    title: 'My first post',
-    content: 'Hello!',
-  },
-  {
-    id: 'my_second_post',
-    title: 'My second post',
-    content: 'Second post!',
-  },
-  {
-    id: 'my_third_post',
-    title: '나의 세번째 포스트',
-    content: '세번째 포스트!',
-  },
-] // 데이터베이스를 사용하지 않고 인메모리에 데이터들을 저장하여 테스트
+// /** @type {Post[]} */
+// const posts = [
+//   {
+//     id: 'my_first_post',
+//     title: 'My first post',
+//     content: 'Hello!',
+//   },
+//   {
+//     id: 'my_second_post',
+//     title: 'My second post',
+//     content: 'Second post!',
+//   },
+//   {
+//     id: 'my_third_post',
+//     title: '나의 세번째 포스트',
+//     content: '세번째 포스트!',
+//   },
+// ] // 데이터베이스를 사용하지 않고 인메모리에 데이터들을 저장하여 테스트
 
 /**
  * @typedef APIResponse
@@ -46,6 +46,30 @@ const posts = [
  *    => body : 새 게시물을 등록할 때 해당 정보가 담겨있는 request Body 정보를 넘겨주는 인자
  */
 
+const fs = require('fs')
+
+const DB_JSON_FILENAME = 'database.json'
+
+/** @returns {Promise<Post[]>} */
+async function getPosts() {
+  const json = await fs.promises.readFile(DB_JSON_FILENAME, 'utf-8')
+
+  return JSON.parse(json).posts
+}
+
+/** @param {Post[]} posts */
+async function savePosts(posts) {
+  const content = {
+    posts,
+  }
+
+  return fs.promises.writeFile(
+    DB_JSON_FILENAME,
+    JSON.stringify(content),
+    'utf-8'
+  )
+} // async function은 promise를 돌려주는 함수이므로 await 대신 return을 해줘도 무방함
+
 /** @type {Route[]} */
 const routes = [
   {
@@ -53,7 +77,7 @@ const routes = [
     method: 'GET',
     callback: async () => ({
       statusCode: 200,
-      body: posts,
+      body: await getPosts(),
     }),
   },
   {
@@ -69,6 +93,7 @@ const routes = [
         }
       }
 
+      const posts = await getPosts()
       const post = posts.find((_post) => _post.id === postId)
 
       if (!post) {
@@ -105,7 +130,9 @@ const routes = [
         content: body.content,
       }
 
+      const posts = await getPosts()
       posts.push(newPost)
+      savePosts(posts)
 
       return {
         statusCode: 200,
