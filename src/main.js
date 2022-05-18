@@ -33,7 +33,12 @@ const posts = [
     title: 'My second post',
     content: 'Second post!',
   },
-]
+  {
+    id: 'my_third_post',
+    title: '나의 세번째 포스트',
+    content: '세번째 포스트!',
+  },
+] // 데이터베이스를 사용하지 않고 인메모리에 데이터들을 저장하여 테스트
 
 /**
  * Post
@@ -67,14 +72,52 @@ const server = http.createServer((req, res) => {
     (req.url && POSTS_ID_REGEX.exec(req.url)) || undefined // 첫번째 else if문에서 조건식에서도 exec()를 하고 내부에서도 exec()를 또 해주고 있어 이를 줄이기 위해 밖으로 꺼냄
 
   if (req.url === '/posts' && req.method === 'GET') {
+    const result = {
+      posts: posts.map((post) => ({
+        id: post.id,
+        title: post.title,
+      })),
+      totalCount: posts.length,
+    }
+
     res.statusCode = 200
-    res.end('List of posts')
-  } else if (postIdRegexResult) {
+    res.setHeader('Content-Type', 'application/json; encoding=utf-8') // 응답의 타입이 json형태라는 것을 알려줌
+    res.end(JSON.stringify(result)) // result는 plain javascript object이므로 http의 바디에선 string으로 담겨지기 때문에 JSON.stringify()를 이용하여 result를 JSON 형태인 string으로 출력
+  } else if (postIdRegexResult && req.method === 'GET') {
     const postId = postIdRegexResult[1]
-    console.log(`postId: ${postId}`)
-    res.statusCode = 200
-    res.end('Some content of the post')
+    const post = posts.find((_post) => _post.id === postId)
+
+    if (post) {
+      res.statusCode = 200
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      res.end(JSON.stringify(post))
+    } else {
+      res.statusCode = 404
+      res.end('Post not found.')
+    }
   } else if (req.url === '/posts' && req.method === 'POST') {
+    /**
+     * POST 메서드로 보내는 법 : http POST localhost:5000/posts title=foo content=bar
+     * POST로 보낸 값과 받은 값 모두 출력해보기 : http POST localhost:5000/posts title=foo content=bar --print=hHbB
+     *    => h : 응답의 헤더, b : 응답의 바디, H : 요청의 헤더, B : 요청의 바디
+     */
+    req.setEncoding('utf-8') // 없으면 Buffer가 찍힘 (바이너리 데이터가 그대로 찍힘)
+    req.on('data', (data) => {
+      /**
+       * @typedef CreatePostBody
+       * @property {string} title
+       * @property {string} content
+       */
+
+      /** @type {CreatePostBody} */
+      const body = JSON.parse(data)
+      posts.push({
+        id: body.title.toLowerCase().replace(/\s/g, '_'), // 그냥 replace(' ', '_')를 하면 제일 첫번째 공백만 바뀌므로 정규식을 활용하여 모든 공백을 _로 변경하도록 함 => \s : 공백, g : 모든 경우
+        title: body.title,
+        content: body.content,
+      })
+    }) // request로 들어온 post의 body 읽기(data 이벤트에 대해 리슨해야 함)
+
     res.statusCode = 200
     res.end('Creating post')
   } else {
